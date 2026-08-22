@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Holiday Asia — розыгрыш подарков</title>
+<style>
+:root{
+  --background: #f5f3ed;
+  --white: #ffffff;
+  --teal: #087b82;
+  --teal-dark: #084f58;
+  --teal-light: #50b7b8;
+  --gold: #d7b56d;
+  --gold-light: #f1d99a;
+  --text-dark: #15383d;
+  --text-secondary: rgba(21,56,61,0.66);
+  --text-muted: rgba(21,56,61,0.46);
+  --border: rgba(21,56,61,0.14);
+
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 10px;
+
+  --shadow-sm: 0 2px 10px rgba(21,56,61,0.08);
+  --shadow-md: 0 12px 30px rgba(21,56,61,0.14);
+  --shadow-gold: 0 0 0 8px rgba(215,181,109,0.32), 0 12px 34px rgba(21,56,61,0.22);
+
+  --font-display: Georgia, 'Times New Roman', 'Noto Serif', serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+  --card-w: clamp(84px, 26vw, 340px);
+  --card-gap: clamp(8px, 2.2vw, 26px);
+}
+
+*{ box-sizing: border-box; }
+body{
+  margin: 0;
+  background: var(--background);
+  color: var(--text-dark);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+button{ font-family: inherit; }
+
+.bg-layer{
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background-size: cover;
+  background-position: center;
+  filter: blur(6px) brightness(1.08) saturate(0.9);
+  transform: scale(1.06);
+}
+.bg-layer::after{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(245,243,237,0.86), rgba(245,243,237,0.94));
+}
+.bg-layer--placeholder{
+  background-image: radial-gradient(circle at 20% 15%, rgba(80,183,184,0.35), transparent 55%),
+    radial-gradient(circle at 85% 80%, rgba(215,181,109,0.28), transparent 55%),
+    linear-gradient(160deg, #eef2ee, #e7ece6);
+}
+
+.dim-overlay{
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  background: rgba(8,26,29,0);
+  pointer-events: none;
+  transition: background 260ms ease;
+}
+.dim-overlay--active{ background: rgba(8,26,29,0.32); }
+
+.celebration-canvas{
+  position: fixed;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.page{
+  position: relative;
+  z-index: 1;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 1.75rem 1.5rem 3rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.top-bar{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+.brand{ display: flex; align-items: center; gap: 12px; }
+.brand-logo{ height: 42px; width: auto; }
+.brand-wordmark{ display: flex; flex-direction: column; line-height: 1.15; }
+.brand-wordmark__main{
+  font-family: var(--font-display);
+  font-size: 20px;
+  letter-spacing: 0.04em;
+  color: var(--teal-dark);
+}
+.brand-wordmark__sub{
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.top-bar__actions{ display: flex; align-items: center; gap: 10px; }
+.icon-btn{
+  width: 38px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.7);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--teal-dark);
+  cursor: pointer;
+}
+.icon-btn svg{ width: 18px; height: 18px; }
+.icon-btn:hover{ background: var(--white); border-color: var(--teal-light); }
+.icon-btn:focus-visible{ outline: 2px solid var(--teal); outline-offset: 2px; }
+.icon-btn:disabled{ opacity: 0.45; cursor: default; }
+.icon-btn:disabled:hover{ background: rgba(255,255,255,0.7); border-color: var(--border); }
+.icon-btn--label{ width: auto; padding: 0 16px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+
+.hero{
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.hero__eyebrow{
+  margin: 0 0 4px;
+  font-size: 13px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 700;
+}
+.hero__title{
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(32px, 4.6vw, 52px);
+  color: var(--teal-dark);
+  text-wrap: balance;
+}
+.hero__subtitle{
+  margin: 0 0 1.75rem;
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+
+.ticket-panel{
+  width: 100%;
+  max-width: 520px;
+  background: rgba(255,255,255,0.72);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  margin-bottom: 2rem;
+  box-shadow: var(--shadow-sm);
+  transition: opacity 200ms ease;
+}
+.ticket-panel--locked{ opacity: 0.7; }
+.ticket-label{
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-align: left;
+}
+.ticket-row{ display: flex; gap: 10px; flex-wrap: wrap; }
+.ticket-input{
+  flex: 1 1 160px;
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border);
+  background: var(--white);
+  color: var(--text-dark);
+}
+.ticket-input:focus-visible{ outline: 2px solid var(--teal); outline-offset: 1px; }
+.ticket-input:disabled{ opacity: 0.6; }
+.ticket-status{
+  margin: 10px 0 0;
+  min-height: 1.2em;
+  font-size: 13px;
+  color: var(--teal-dark);
+  font-weight: 600;
+  text-align: left;
+}
+
+.btn{
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 12px 22px;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+}
+.btn:focus-visible{ outline: 2px solid var(--teal); outline-offset: 2px; }
+.btn:disabled{ opacity: 0.5; cursor: default; }
+
+.btn--secondary{
+  background: var(--teal-dark);
+  color: var(--white);
+}
+.btn--secondary:hover:not(:disabled){ background: var(--teal); }
+
+.btn--ghost{
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--teal-dark);
+}
+.btn--ghost:hover{ border-color: var(--teal-light); }
+
+.btn--primary{
+  background: linear-gradient(180deg, var(--teal-light), var(--teal-dark));
+  color: var(--white);
+  border: 1px solid var(--gold);
+  box-shadow: var(--shadow-md);
+}
+.btn--primary:hover:not(:disabled){ transform: translateY(-2px); box-shadow: 0 16px 34px rgba(21,56,61,0.24); }
+.btn--primary:active:not(:disabled){ transform: translateY(0) scale(0.98); }
+
+.btn--spin{
+  min-width: 220px;
+  padding: 16px 30px;
+  font-size: 16px;
+  margin-top: 1.75rem;
+}
+
+.reel-section{ display: flex; flex-direction: column; align-items: center; }
+.reel-wrap{
+  position: relative;
+  width: calc(var(--card-w) * 3 + var(--card-gap) * 2);
+  max-width: 100%;
+}
+.reel-glow{
+  position: absolute;
+  inset: -22px;
+  z-index: 0;
+  border-radius: 32px;
+  background: radial-gradient(circle, rgba(215,181,109,0.4) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 220ms ease;
+  pointer-events: none;
+}
+.reel-section.is-spinning .reel-glow{
+  opacity: 1;
+  animation: pulseGlow 900ms ease-in-out infinite;
+}
+@keyframes pulseGlow{
+  0%, 100%{ transform: scale(0.95); }
+  50%{ transform: scale(1.04); }
+}
+
+.reel-pointer{
+  position: absolute;
+  left: 50%;
+  width: 0; height: 0;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  z-index: 3;
+  transform: translateX(-50%);
+}
+.reel-pointer--top{ top: -14px; border-top: 12px solid var(--gold); }
+.reel-pointer--bottom{ bottom: -14px; border-bottom: 12px solid var(--gold); }
+
+.reel-frame{
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: var(--card-w);
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  border: 0.5px solid var(--border);
+  box-shadow: var(--shadow-md);
+}
+.reel-frame--grand-active{ overflow: visible; }
+.reel-frame::after{
+  content: "";
+  position: absolute;
+  top: 8px; bottom: 8px;
+  left: 50%;
+  width: var(--card-w);
+  transform: translateX(-50%);
+  border-radius: calc(var(--radius-md) + 4px);
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 0 3px rgba(8,123,130,0.18) inset;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.reel-track{
+  position: absolute;
+  top: 0; left: 0;
+  height: 100%;
+  display: flex;
+  gap: var(--card-gap);
+  will-change: transform;
+}
+
+.reel-card{
+  position: relative;
+  flex-shrink: 0;
+  width: var(--card-w);
+  height: 100%;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--teal-light), var(--teal-dark));
+  transform: scale(0.94);
+  opacity: 0.85;
+  transition: transform 200ms ease, opacity 200ms ease, box-shadow 260ms ease;
+}
+.reel-card--grand{ box-shadow: inset 0 0 0 2px rgba(215,181,109,0.55); }
+
+.reel-card__media{
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.9);
+}
+.media-placeholder{ background: linear-gradient(160deg, var(--teal-light), var(--teal-dark)); }
+.media-placeholder svg{ width: 34%; height: 34%; }
+
+.reel-card::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, rgba(8,26,29,0.78) 0%, rgba(8,26,29,0.05) 55%);
+  z-index: 1;
+}
+.reel-card__label{
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 2;
+  padding: 12px 14px;
+  color: var(--white);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.reel-card--settle{ animation: settleBounce 640ms ease forwards; }
+@keyframes settleBounce{
+  0%{ transform: scale(1.03); }
+  40%{ transform: scale(1.07); }
+  70%{ transform: scale(1.03); }
+  100%{ transform: scale(1.03); }
+}
+.reel-card--winning-glow{
+  box-shadow: var(--shadow-gold);
+  z-index: 4;
+}
+.reel-card--grand-glow{
+  box-shadow: 0 0 0 10px rgba(215,181,109,0.45), 0 20px 50px rgba(21,56,61,0.3);
+}
+.reel-card--grand-zoom{
+  z-index: 10;
+  animation: grandCardZoom 2400ms cubic-bezier(0.16, 0.9, 0.2, 1) forwards,
+    grandCardGlowPulse 1800ms ease-in-out 2400ms infinite;
+}
+.reel-card--grand-zoom::before{
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+.reel-card--grand-zoom .reel-card__label{
+  opacity: 0;
+  transition: opacity 350ms ease;
+}
+@keyframes grandCardZoom{
+  0%{ transform: scale(1.03); box-shadow: 0 0 0 0 rgba(215,181,109,0); }
+  100%{
+    transform: scale(1.45);
+    box-shadow: 0 0 0 6px rgba(255,255,255,0.9), 0 0 60px 18px rgba(215,181,109,0.9), 0 0 130px 42px rgba(215,181,109,0.45);
+  }
+}
+@keyframes grandCardGlowPulse{
+  0%, 100%{
+    box-shadow: 0 0 0 6px rgba(255,255,255,0.9), 0 0 60px 18px rgba(215,181,109,0.9), 0 0 130px 42px rgba(215,181,109,0.45);
+  }
+  50%{
+    box-shadow: 0 0 0 9px rgba(255,255,255,1), 0 0 95px 30px rgba(241,217,154,1), 0 0 180px 64px rgba(215,181,109,0.62);
+  }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .reel-card--settle{ animation-duration: 1ms; }
+  .reel-card--grand-zoom{
+    animation: none;
+    transform: scale(1.2);
+    box-shadow: 0 0 0 6px rgba(255,255,255,0.9), 0 0 60px 18px rgba(215,181,109,0.9);
+  }
+  .reel-section.is-spinning .reel-glow{ animation: none; opacity: 0.6; }
+}
+
+.result-panel{
+  margin-top: 2rem;
+  padding: 1.75rem 2rem;
+  background: rgba(255,255,255,0.85);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  max-width: 460px;
+}
+.result-panel--grand{ border: 1.5px solid var(--gold); }
+.result-eyebrow{
+  margin: 0 0 6px;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 700;
+}
+.result-ticket{
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.result-prize{
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(24px, 3.4vw, 32px);
+  color: var(--teal-dark);
+  text-wrap: balance;
+}
+.result-grand-sub{
+  margin: 0 0 14px;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--teal);
+  font-weight: 600;
+}
+.result-panel .btn--ghost{ margin-top: 14px; }
+
+.toast-root{
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+.toast{
+  background: var(--teal-dark);
+  color: var(--white);
+  padding: 12px 20px;
+  border-radius: 999px;
+  font-size: 14px;
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+.toast--visible{ opacity: 1; transform: translateY(0); }
+
+.operator-overlay{
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgba(8,26,29,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+.operator-overlay--visible{ opacity: 1; pointer-events: auto; }
+
+.operator-modal{
+  width: min(420px, 92vw);
+  max-height: 86vh;
+  overflow-y: auto;
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 1.5rem;
+}
+.operator-modal__head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.operator-modal__head h2{
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--teal-dark);
+}
+.operator-label{
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin: 0 0 8px;
+}
+.operator-test-block{ margin-bottom: 1.25rem; }
+.operator-test-grid{
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.operator-test-btn{
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border);
+  background: var(--background);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dark);
+  cursor: pointer;
+  text-align: center;
+}
+.operator-test-btn--active{
+  border-color: var(--gold);
+  background: var(--gold-light);
+  color: var(--teal-dark);
+}
+.operator-test-btn--grand{ grid-column: 1 / -1; border-style: dashed; }
+.operator-test-btn--grand.operator-test-btn--active{ border-style: solid; }
+.operator-sound-row{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.operator-hint{
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+@media (max-width: 640px){
+  .top-bar__actions .icon-btn--label{ padding: 0 10px; font-size: 10px; }
+  .ticket-row{ flex-direction: column; }
+  .btn--spin{ width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<div id="bg-layer" class="bg-layer"></div>
+<div class="dim-overlay" id="dim-overlay"></div>
+
+<div class="page">
+  <header class="top-bar">
+    <div class="brand">
+      <img id="logo-img" class="brand-logo" alt="IVC&HPA" hidden>
+      <div id="logo-wordmark" class="brand-wordmark">
+        <span class="brand-wordmark__main">IVC&HPA</span>
+        <span class="brand-wordmark__sub">Holiday Asia</span>
+      </div>
+    </div>
+    <div class="top-bar__actions">
+      <button id="fullscreen-btn" class="icon-btn" type="button" aria-label="Полноэкранный режим" title="Полноэкранный режим (F)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 9V5a1 1 0 0 1 1-1h4"/><path d="M20 9V5a1 1 0 0 0-1-1h-4"/><path d="M4 15v4a1 1 0 0 0 1 1h4"/><path d="M20 15v4a1 1 0 0 1-1 1h-4"/>
+        </svg>
+      </button>
+      <button id="menu-btn" class="icon-btn icon-btn--label" type="button" title="Меню оператора (M)">Меню</button>
+    </div>
+  </header>
+
+  <main class="hero">
+    <p class="hero__eyebrow">Holiday Asia</p>
+    <h1 class="hero__title">Разыгрываем подарок!</h1>
+    <p class="hero__subtitle">Введите номер билета гостя и запустите розыгрыш</p>
+
+    <div class="ticket-panel" id="ticket-panel">
+      <label class="ticket-label" for="ticket-input">Номер билета</label>
+      <div class="ticket-row">
+        <input id="ticket-input" class="ticket-input" type="text" maxlength="12" placeholder="Например: 2847" autocomplete="off">
+        <button id="register-btn" class="btn btn--secondary" type="button">Зарегистрировать</button>
+      </div>
+      <p id="ticket-status" class="ticket-status" role="status" aria-live="polite"></p>
+    </div>
+
+    <div class="reel-section" id="reel-section">
+      <div class="reel-wrap">
+        <div class="reel-glow" aria-hidden="true"></div>
+        <div class="reel-pointer reel-pointer--top" aria-hidden="true"></div>
+        <div class="reel-frame" id="reel-frame">
+          <div class="reel-track" id="reel-track"></div>
+        </div>
+        <div class="reel-pointer reel-pointer--bottom" aria-hidden="true"></div>
+      </div>
+
+      <button id="spin-btn" class="btn btn--primary btn--spin" type="button" disabled aria-label="Крутить барабан">Крутить</button>
+    </div>
+
+    <div id="result-panel" class="result-panel" hidden>
+      <p id="result-eyebrow" class="result-eyebrow">Поздравляем!</p>
+      <p id="result-ticket" class="result-ticket"></p>
+      <p id="result-prize" class="result-prize"></p>
+      <p id="result-grand-sub" class="result-grand-sub" hidden>на клубных курортах</p>
+      <button id="again-btn" class="btn btn--ghost" type="button">Новый гость</button>
+    </div>
+  </main>
+</div>
+
+<canvas id="celebration-canvas" class="celebration-canvas" aria-hidden="true"></canvas>
+<div id="toast-root" class="toast-root" aria-live="polite"></div>
+
+<div id="operator-overlay" class="operator-overlay">
+  <div class="operator-modal" id="operator-modal" role="dialog" aria-modal="true" aria-label="Панель оператора">
+    <div class="operator-modal__head">
+      <h2>Панель оператора</h2>
+      <button id="operator-close-btn" class="icon-btn" type="button" aria-label="Закрыть">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+
+    <div class="operator-modal__body">
+      <div class="operator-test-block">
+        <p class="operator-label">Выбрать конкретный приз для следующего гостя</p>
+        <div id="operator-test-grid" class="operator-test-grid"></div>
+        <p class="operator-hint">Если не выбрано — выпадет случайный приз (без главного)</p>
+      </div>
+
+      <div class="operator-sound-row">
+        <p class="operator-label">Звук</p>
+        <button id="sound-toggle-btn" class="icon-btn" type="button" aria-label="Переключить звук"></button>
+      </div>
+
+      <p class="operator-hint">Пробел — крутить · F — полный экран · Esc — закрыть меню</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+'use strict';
+
+const DEBUG = false;
+const SOUND_ENABLED_DEFAULT = true;
+const SPIN_DURATION_MS = 12000;
+const GRAND_CELEBRATION_MS = 8500;
+const IDLE_SPEED_PX_PER_SEC = 16;
+
+const PRIZES = [
+  { id: 'spa', title: 'SPA ДЛЯ ДВОИХ', shortTitle: 'SPA', image: 'images/prize-spa.png', icon: 'spa', weight: 35, grandPrize: false },
+  { id: 'dinner', title: 'РОМАНТИЧЕСКИЙ УЖИН', shortTitle: 'УЖИН', image: 'images/prize-dinner.png', icon: 'dinner', weight: 30, grandPrize: false },
+  { id: 'cruise', title: 'ВЕЧЕРНИЙ КРУИЗ', shortTitle: 'КРУИЗ', image: 'images/prize-cruise.png', icon: 'cruise', weight: 25, grandPrize: false },
+  { id: 'week', title: 'НЕДЕЛЯ ОТДЫХА', shortTitle: 'НЕДЕЛЯ', image: 'images/prize-week.png', icon: 'week', weight: 10, grandPrize: true }
+];
+
+const LOGO_IMAGE = 'images/logo.png';
+const BACKGROUND_IMAGE = 'images/background.png';
+
+function selectWeighted(items) {
+  const totalWeight = items.reduce((sum, item) => sum + item.weight, 0);
+  let roll = Math.random() * totalWeight;
+  for (const item of items) {
+    if (roll < item.weight) return item;
+    roll -= item.weight;
+  }
+  return items[items.length - 1];
+}
+
+let toastRootEl = null;
+function initToasts(el) { toastRootEl = el; }
+function showToast(message, variant) {
+  variant = variant || 'error';
+  if (!toastRootEl) return;
+  const toast = document.createElement('div');
+  toast.className = 'toast toast--' + variant;
+  toast.textContent = message;
+  toastRootEl.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('toast--visible'));
+  setTimeout(() => {
+    toast.classList.remove('toast--visible');
+    setTimeout(() => toast.remove(), 300);
+  }, 3200);
+}
+
+const checkCache = new Map();
+function testImage(src) {
+  if (checkCache.has(src)) return checkCache.get(src);
+  const promise = new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = src;
+  });
+  checkCache.set(src, promise);
+  return promise;
+}
+
+const ICONS = {
+  spa: '<path d="M4 13.5c2.5-3 4-3 6.5 0M13.5 13.5c2.5-3 4-3 6.5 0"/><path d="M6 13.5c0 3.5 2.7 6 6 6s6-2.5 6-6"/><path d="M9 8.5c0-2 1-3 3-3s3 1 3 3"/>',
+  dinner: '<path d="M7 3v6a2.5 2.5 0 0 0 5 0V3"/><path d="M9.5 9v12"/><path d="M16 3c-1.4 1.6-1.4 4.4 0 6l1 1v11"/>',
+  cruise: '<path d="M5 15.5h14l-1.7 4.2a2 2 0 0 1-1.9 1.3H8.6a2 2 0 0 1-1.9-1.3L5 15.5Z"/><path d="M12 15.5V5"/><path d="M12 5c2.8 0 5 2 5.6 5.2H12V5Z"/><path d="M3 19.2c1.4 1 2.8 1 4.2 0"/>',
+  week: '<circle cx="12" cy="10.5" r="4.3"/><path d="M12 2.8v1.8M12 15.8v1.8M4.6 10.5H2.8M21.2 10.5h-1.8M6.4 4.9 5.1 3.6M18.9 4.9l-1.3 1.3"/><path d="M4 20.5c2.6-2 4.7-2 7 0s4.4 2 7 0"/>'
+};
+function iconSvg(key) {
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONS[key] || ICONS.week) + '</svg>';
+}
+
+async function resolveMedia(root) {
+  const elements = root.querySelectorAll('[data-media-pending="1"]');
+  const bySrc = new Map();
+  elements.forEach((el) => {
+    const src = el.dataset.image;
+    if (!bySrc.has(src)) bySrc.set(src, []);
+    bySrc.get(src).push(el);
+  });
+  await Promise.all(Array.from(bySrc.entries()).map(async ([src, els]) => {
+    const ok = await testImage(src);
+    els.forEach((el) => {
+      el.removeAttribute('data-media-pending');
+      if (ok) {
+        el.style.backgroundImage = 'url("' + src + '")';
+        el.classList.remove('media-placeholder');
+      } else {
+        el.classList.add('media-placeholder');
+        el.innerHTML = iconSvg(el.dataset.icon);
+      }
+    });
+  }));
+}
+
+async function resolveBackground(el, src, fallbackClass) {
+  const ok = await testImage(src);
+  if (ok) el.style.backgroundImage = 'url("' + src + '")';
+  else el.classList.add(fallbackClass);
+}
+
+async function resolveLogo(imgEl, wordmarkEl, src) {
+  const ok = await testImage(src);
+  if (ok) { imgEl.src = src; imgEl.hidden = false; wordmarkEl.hidden = true; }
+  else { imgEl.hidden = true; wordmarkEl.hidden = false; }
+}
+
+const TICKET_PATTERN = /^[A-Za-zА-Яа-яЁё0-9]{1,12}$/;
+class TicketManager {
+  constructor() { this.currentTicket = null; }
+  validate(raw) {
+    const value = (raw || '').trim();
+    if (!value) return { valid: false, reason: 'empty' };
+    if (!TICKET_PATTERN.test(value)) return { valid: false, reason: 'format' };
+    return { valid: true, value };
+  }
+  register(raw) {
+    const result = this.validate(raw);
+    if (result.valid) this.currentTicket = result.value;
+    return result;
+  }
+  clear() { this.currentTicket = null; }
+  get() { return this.currentTicket; }
+}
+
+class PrizeSelector {
+  constructor(prizes) {
+    this.prizes = prizes;
+    this.nonGrandPrizes = prizes.filter((p) => !p.grandPrize);
+    this.manualNextId = null;
+  }
+  setManualNext(id) { this.manualNextId = id; }
+  clearManualNext() { this.manualNextId = null; }
+  getManualNext() { return this.manualNextId; }
+  selectNext() {
+    if (this.manualNextId) {
+      const forced = this.prizes.find((p) => p.id === this.manualNextId);
+      this.clearManualNext();
+      if (forced) return forced;
+    }
+    return selectWeighted(this.nonGrandPrizes);
+  }
+}
+
+class ReelEngine {
+  constructor(trackEl, frameEl) {
+    this.track = trackEl;
+    this.frame = frameEl;
+    this.offset = 0;
+    this.rafId = null;
+    this.lastTime = null;
+    this.idleRunning = false;
+    this.spinning = false;
+    this.cardStride = 0;
+    this.settledIndex = null;
+    this.activeTargetIndex = null;
+    this.buildIdleTrack();
+    this.measure();
+    window.addEventListener('resize', () => this.handleResize());
+    document.addEventListener('fullscreenchange', () => this.handleResize());
+  }
+  handleResize() {
+    const hadStride = this.cardStride > 0;
+    this.measure();
+    if (!hadStride) return;
+    if (this.spinning && this.activeTargetIndex != null) {
+      this.offset = this.centeredOffset(this.activeTargetIndex);
+      this.applyOffset();
+    } else if (this.settledIndex != null) {
+      this.track.style.transition = 'none';
+      this.offset = this.centeredOffset(this.settledIndex);
+      this.applyOffset();
+      this.track.offsetHeight;
+    }
+  }
+  measure() {
+    const cardEl = this.track.firstElementChild;
+    const cardWidth = cardEl
+      ? parseFloat(getComputedStyle(cardEl).width)
+      : parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-w')) || 160;
+    const trackStyle = getComputedStyle(this.track);
+    const gap = parseFloat(trackStyle.columnGap || trackStyle.gap) || 12;
+    this.cardWidth = cardWidth;
+    this.cardStride = cardWidth + gap;
+    this.cycleWidth = PRIZES.length * this.cardStride;
+  }
+  centeredOffset(index) {
+    return (index - 1) * this.cardStride;
+  }
+  createCard(prize) {
+    const card = document.createElement('div');
+    card.className = 'reel-card' + (prize.grandPrize ? ' reel-card--grand' : '');
+    card.dataset.prizeId = prize.id;
+    card.innerHTML =
+      '<div class="reel-card__media" data-media-pending="1" data-image="' + prize.image + '" data-icon="' + prize.icon + '"></div>' +
+      '<div class="reel-card__label">' + prize.title + '</div>';
+    return card;
+  }
+  applyOffset() { this.track.style.transform = 'translate3d(' + -this.offset + 'px,0,0)'; }
+  buildIdleTrack(repeats) {
+    repeats = repeats || 4;
+    this.track.innerHTML = '';
+    this.track.style.transition = 'none';
+    for (let r = 0; r < repeats; r++) PRIZES.forEach((prize) => this.track.appendChild(this.createCard(prize)));
+    this.offset = 0;
+    this.settledIndex = null;
+    this.activeTargetIndex = null;
+    this.applyOffset();
+    resolveMedia(this.track);
+  }
+  startIdle() {
+    if (this.spinning || this.idleRunning) return;
+    this.idleRunning = true;
+    this.lastTime = null;
+    const step = (time) => {
+      if (!this.idleRunning) return;
+      if (this.lastTime != null) {
+        const dt = (time - this.lastTime) / 1000;
+        this.offset += IDLE_SPEED_PX_PER_SEC * dt;
+        if (this.offset >= this.cycleWidth) this.offset -= this.cycleWidth;
+        this.applyOffset();
+      }
+      this.lastTime = time;
+      this.rafId = requestAnimationFrame(step);
+    };
+    this.rafId = requestAnimationFrame(step);
+  }
+  stopIdle() {
+    this.idleRunning = false;
+    if (this.rafId) cancelAnimationFrame(this.rafId);
+  }
+  spinTo(prize, durationMs) {
+    return new Promise((resolve) => {
+      this.stopIdle();
+      this.spinning = true;
+      this.settledIndex = null;
+      this.track.innerHTML = '';
+      this.track.style.transition = 'none';
+      const loops = 26;
+      const sequence = [];
+      for (let i = 0; i < loops; i++) sequence.push(...PRIZES);
+      const targetIndex = sequence.length;
+      sequence.push(prize);
+      sequence.push(...PRIZES);
+      sequence.forEach((p) => this.track.appendChild(this.createCard(p)));
+      const winningCardEl = this.track.children[targetIndex];
+      this.activeTargetIndex = targetIndex;
+      resolveMedia(this.track);
+      this.measure();
+      this.offset = this.centeredOffset(0);
+      this.applyOffset();
+      this.track.offsetHeight;
+      const finalOffset = this.centeredOffset(targetIndex);
+      requestAnimationFrame(() => {
+        this.track.style.transition = 'transform ' + durationMs + 'ms cubic-bezier(0.11, 0.86, 0.14, 1)';
+        this.offset = finalOffset;
+        this.applyOffset();
+      });
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        this.track.removeEventListener('transitionend', onEnd);
+        clearTimeout(fallbackTimer);
+        this.spinning = false;
+        this.activeTargetIndex = null;
+        this.settledIndex = targetIndex;
+        resolve(winningCardEl);
+      };
+      const onEnd = (e) => {
+        if (e.target !== this.track || e.propertyName !== 'transform') return;
+        finish();
+      };
+      this.track.addEventListener('transitionend', onEnd);
+      const fallbackTimer = setTimeout(finish, durationMs + 500);
+    });
+  }
+  isSpinning() { return this.spinning; }
+}
+
+const AUDIO_STORAGE_KEY = 'holidayAsiaDraw.soundEnabled';
+const SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAAAAAA=';
+class AudioManager {
+  constructor() {
+    const stored = localStorage.getItem(AUDIO_STORAGE_KEY);
+    this.enabled = stored === null ? SOUND_ENABLED_DEFAULT : stored === '1';
+    this.ctx = null;
+    this.silentAudioEl = null;
+  }
+  primeSilentAudio() {
+    if (this.silentAudioEl) return;
+    const el = document.createElement('audio');
+    el.setAttribute('playsinline', '');
+    el.setAttribute('preload', 'auto');
+    el.loop = true;
+    el.volume = 0.01;
+    el.src = SILENT_WAV;
+    const playPromise = el.play();
+    if (playPromise && playPromise.catch) playPromise.catch(() => {});
+    this.silentAudioEl = el;
+  }
+  unlock() {
+    if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    this.primeSilentAudio();
+    if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+    return this.ctx;
+  }
+  isEnabled() { return this.enabled; }
+  setEnabled(value) {
+    this.enabled = value;
+    localStorage.setItem(AUDIO_STORAGE_KEY, value ? '1' : '0');
+  }
+  toggle() { this.setEnabled(!this.enabled); return this.enabled; }
+  tone(time, freq, opts) {
+    opts = opts || {};
+    const duration = opts.duration || 0.05;
+    const type = opts.type || 'square';
+    const volume = opts.volume || 0.16;
+    const ctx = this.unlock();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, time);
+    gain.gain.linearRampToValueAtTime(volume, time + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(time);
+    osc.stop(time + duration + 0.02);
+  }
+  playSpinStart() {
+    if (!this.enabled) return;
+    const ctx = this.unlock();
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.exponentialRampToValueAtTime(720, now + 0.35);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(0.14, now + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.42);
+  }
+  playTicks(totalCards, durationMs) {
+    if (!this.enabled) return;
+    const ctx = this.unlock();
+    const start = ctx.currentTime + 0.02;
+    const durationSec = durationMs / 1000;
+    for (let i = 1; i <= totalCards; i++) {
+      const frac = 1 - Math.pow(1 - i / totalCards, 3);
+      const t = start + frac * durationSec;
+      const freq = 360 + 240 * (i / totalCards);
+      this.tone(t, freq, { duration: 0.05, type: 'square', volume: 0.14 });
+    }
+  }
+  playWin() {
+    if (!this.enabled) return;
+    const ctx = this.unlock();
+    const now = ctx.currentTime + 0.02;
+    [523.25, 659.25, 783.99].forEach((f, i) => {
+      this.tone(now + i * 0.09, f, { duration: 0.6, type: 'triangle', volume: 0.18 });
+    });
+  }
+  playJackpot() {
+    if (!this.enabled) return;
+    const ctx = this.unlock();
+    const now = ctx.currentTime + 0.03;
+    const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5];
+    notes.forEach((f, i) => { this.tone(now + i * 0.11, f, { duration: 0.9, type: 'triangle', volume: 0.22 }); });
+    const delay = ctx.createDelay();
+    delay.delayTime.value = 0.22;
+    const feedback = ctx.createGain();
+    feedback.gain.value = 0.28;
+    const wet = ctx.createGain();
+    wet.gain.value = 0.5;
+    delay.connect(feedback).connect(delay);
+    delay.connect(wet).connect(ctx.destination);
+    notes.forEach((f, i) => {
+      const t = now + i * 0.11;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = f;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.12, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.8);
+      osc.connect(gain).connect(delay);
+      osc.start(t);
+      osc.stop(t + 0.85);
+    });
+    const sparkleNotes = [1046.5, 1318.5, 1568.0];
+    [3.0, 6.0].forEach((offset) => {
+      sparkleNotes.forEach((f, i) => {
+        this.tone(now + offset + i * 0.08, f, { duration: 0.35, type: 'triangle', volume: 0.14 });
+      });
+    });
+    try {
+      this.playApplause(now + 0.5, 7.2);
+    } catch (err) {
+      /* аплодисменты необязательны */
+    }
+  }
+  playApplause(startTime, durationSec) {
+    const ctx = this.unlock();
+    const bufferSize = Math.round(ctx.sampleRate * durationSec);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      const density = Math.random() < 0.35 ? 1 : 0;
+      data[i] = (Math.random() * 2 - 1) * density * 0.6;
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const bandpass = ctx.createBiquadFilter();
+    bandpass.type = 'bandpass';
+    bandpass.frequency.value = 2400;
+    bandpass.Q.value = 0.7;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(0.5, startTime + 0.3);
+    gain.gain.linearRampToValueAtTime(0.3, startTime + durationSec * 0.7);
+    gain.gain.linearRampToValueAtTime(0.0001, startTime + durationSec);
+    noise.connect(bandpass).connect(gain).connect(ctx.destination);
+    noise.start(startTime);
+    noise.stop(startTime + durationSec);
+  }
+}
+
+const PALETTE_GRAND = ['#d7b56d', '#f1d99a', '#50b7b8', '#ffffff'];
+const PALETTE_NORMAL = ['#d7b56d', '#f1d99a'];
+class CelebrationManager {
+  constructor(canvasEl, dimEl, reelFrameEl) {
+    this.canvas = canvasEl;
+    this.ctx = canvasEl.getContext('2d');
+    this.dimEl = dimEl;
+    this.reelFrame = reelFrameEl;
+    this.frameId = null;
+    this.particles = [];
+    this.grandTimer = null;
+    this.resize();
+    window.addEventListener('resize', () => this.resize());
+  }
+  resize() {
+    const dpr = window.devicePixelRatio || 1;
+    this.canvas.width = window.innerWidth * dpr;
+    this.canvas.height = window.innerHeight * dpr;
+    this.canvas.style.width = window.innerWidth + 'px';
+    this.canvas.style.height = window.innerHeight + 'px';
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  clear() { this.ctx.clearRect(0, 0, window.innerWidth, window.innerHeight); }
+  stopCelebration() {
+    if (this.frameId) cancelAnimationFrame(this.frameId);
+    if (this.grandTimer) clearTimeout(this.grandTimer);
+    this.particles = [];
+    this.clear();
+    this.dimEl.classList.remove('dim-overlay--active');
+    this.reelFrame.classList.remove('reel-frame--grand-active');
+  }
+  spawnConfetti(count, colors, originX, originY, spread) {
+    for (let i = 0; i < count; i++) {
+      this.particles.push({
+        type: 'confetti', x: originX + (Math.random() - 0.5) * spread, y: originY,
+        vx: (Math.random() - 0.5) * 6, vy: -Math.random() * 7 - 3,
+        size: 4 + Math.random() * 4, color: colors[Math.floor(Math.random() * colors.length)],
+        rot: Math.random() * Math.PI, vrot: (Math.random() - 0.5) * 0.25,
+        life: 1, decay: 0.006 + Math.random() * 0.005
+      });
+    }
+  }
+  spawnFirework(x, y, colors) {
+    const count = 46;
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count;
+      const speed = 2.4 + Math.random() * 2.6;
+      this.particles.push({
+        type: 'spark', x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+        size: 2 + Math.random() * 1.5, color: colors[Math.floor(Math.random() * colors.length)],
+        life: 1, decay: 0.011 + Math.random() * 0.006
+      });
+    }
+  }
+  runLoop() {
+    if (this.frameId) return;
+    const step = () => {
+      this.clear();
+      this.particles.forEach((p) => {
+        if (p.type === 'confetti') p.vy += 0.14;
+        p.x += p.vx; p.y += p.vy;
+        if (p.rot !== undefined) p.rot += p.vrot;
+        p.life -= p.decay;
+        this.ctx.save();
+        this.ctx.globalAlpha = Math.max(p.life, 0);
+        this.ctx.translate(p.x, p.y);
+        if (p.rot !== undefined) this.ctx.rotate(p.rot);
+        this.ctx.fillStyle = p.color;
+        if (p.type === 'confetti') this.ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+        else { this.ctx.beginPath(); this.ctx.arc(0, 0, p.size, 0, Math.PI * 2); this.ctx.fill(); }
+        this.ctx.restore();
+      });
+      this.particles = this.particles.filter((p) => p.life > 0);
+      if (this.particles.length > 0) this.frameId = requestAnimationFrame(step);
+      else this.frameId = null;
+    };
+    this.frameId = requestAnimationFrame(step);
+  }
+  celebrateNormalPrize(cardEl) {
+    cardEl.classList.add('reel-card--winning-glow', 'reel-card--settle');
+    const rect = cardEl.getBoundingClientRect();
+    this.spawnConfetti(28, PALETTE_NORMAL, rect.left + rect.width / 2, rect.top + rect.height / 2, rect.width * 0.6);
+    this.runLoop();
+    setTimeout(() => cardEl.classList.remove('reel-card--winning-glow', 'reel-card--settle'), 2600);
+  }
+  celebrateGrandPrize(cardEl) {
+    this.reelFrame.classList.add('reel-frame--grand-active');
+    cardEl.classList.add('reel-card--grand-zoom');
+    const rect = cardEl.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    this.spawnConfetti(90, PALETTE_GRAND, cx, cy, rect.width);
+    this.runLoop();
+    const total = GRAND_CELEBRATION_MS;
+    const bursts = [
+      [window.innerWidth * 0.5, window.innerHeight * 0.35, 300],
+      [window.innerWidth * 0.14, window.innerHeight * 0.3, 1000],
+      [window.innerWidth * 0.86, window.innerHeight * 0.28, 1700],
+      [window.innerWidth * 0.5, window.innerHeight * 0.16, 2600],
+      [window.innerWidth * 0.24, window.innerHeight * 0.5, 3600],
+      [window.innerWidth * 0.76, window.innerHeight * 0.48, 4600],
+      [window.innerWidth * 0.38, window.innerHeight * 0.22, 5700],
+      [window.innerWidth * 0.62, window.innerHeight * 0.5, 6700],
+      [window.innerWidth * 0.5, window.innerHeight * 0.3, total - 900]
+    ];
+    bursts.forEach(([x, y, delay]) => {
+      setTimeout(() => {
+        this.spawnFirework(x, y, PALETTE_GRAND);
+        this.spawnConfetti(20, PALETTE_GRAND, x, y, 60);
+        this.runLoop();
+      }, delay);
+    });
+  }
+}
+
+class OperatorPanel {
+  constructor(refs, prizeSelector, isLocked) {
+    this.overlay = refs.overlayEl;
+    this.modal = refs.modalEl;
+    this.openBtn = refs.openBtn;
+    this.closeBtn = refs.closeBtn;
+    this.pickGrid = refs.pickGridEl;
+    this.selector = prizeSelector;
+    this.isLocked = isLocked || (() => false);
+    this.buildPickGrid();
+    this.openBtn.addEventListener('click', () => this.open());
+    this.closeBtn.addEventListener('click', () => this.close());
+    this.overlay.addEventListener('click', (e) => { if (e.target === this.overlay) this.close(); });
+  }
+  buildPickGrid() {
+    this.pickGrid.innerHTML = '';
+    PRIZES.forEach((prize) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'operator-test-btn' + (prize.grandPrize ? ' operator-test-btn--grand' : '');
+      btn.textContent = prize.title;
+      btn.addEventListener('click', () => {
+        if (this.isLocked()) return;
+        const current = this.selector.getManualNext();
+        if (current === prize.id) this.selector.clearManualNext();
+        else this.selector.setManualNext(prize.id);
+        this.buildPickGrid();
+      });
+      this.pickGrid.appendChild(btn);
+    });
+    this.markActive();
+  }
+  markActive() {
+    const picked = this.selector.getManualNext();
+    Array.from(this.pickGrid.children).forEach((btn, i) => {
+      btn.classList.toggle('operator-test-btn--active', PRIZES[i].id === picked);
+    });
+  }
+  isOpen() { return this.overlay.classList.contains('operator-overlay--visible'); }
+  open() {
+    if (this.isLocked()) return;
+    this.overlay.classList.add('operator-overlay--visible');
+    this.markActive();
+  }
+  close() { this.overlay.classList.remove('operator-overlay--visible'); }
+  refreshAfterSpin() { this.buildPickGrid(); }
+}
+
+const SPEAKER_ON = '<path d="M4 9v6h4l5 4V5L8 9H4Z" stroke-linejoin="round"/><path d="M16.5 9.5c1 .8 1 3.2 0 4"/><path d="M18.7 7.5c2 1.8 2 6.2 0 8"/>';
+const SPEAKER_OFF = '<path d="M4 9v6h4l5 4V5L8 9H4Z" stroke-linejoin="round"/><path d="M16 9l5 5"/><path d="M21 9l-5 5"/>';
+const STATES = { READY: 'READY', TICKET_REGISTERED: 'TICKET_REGISTERED', SPINNING: 'SPINNING', RESULT: 'RESULT' };
+function log(...args) { if (DEBUG) console.log('[HolidayAsiaDraw]', ...args); }
+
+class UIController {
+  constructor(dom, deps) {
+    this.dom = dom;
+    this.ticketManager = deps.ticketManager;
+    this.prizeSelector = deps.prizeSelector;
+    this.reelEngine = deps.reelEngine;
+    this.audioManager = deps.audioManager;
+    this.celebrationManager = deps.celebrationManager;
+    this.operatorPanel = deps.operatorPanel;
+    this.state = STATES.READY;
+    this.bindEvents();
+    this.renderSoundIcon();
+    this.setState(STATES.READY);
+    this.reelEngine.startIdle();
+  }
+  bindEvents() {
+    const { dom } = this;
+    dom.registerBtn.addEventListener('click', () => this.handleRegister());
+    dom.ticketInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') this.handleRegister(); });
+    dom.spinBtn.addEventListener('click', () => this.handleSpin());
+    dom.againBtn.addEventListener('click', () => this.handleReset());
+    dom.soundToggleBtn.addEventListener('click', () => {
+      const enabled = this.audioManager.toggle();
+      this.renderSoundIcon();
+      log('Sound enabled:', enabled);
+    });
+    dom.fullscreenBtn.addEventListener('click', () => this.toggleFullscreen());
+    document.addEventListener('keydown', (e) => this.handleKeydown(e));
+  }
+  isTypingContext() {
+    const active = document.activeElement;
+    return active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA');
+  }
+  handleKeydown(e) {
+    if (e.code === 'Space' && !this.isTypingContext()) { e.preventDefault(); this.handleSpin(); }
+    else if (e.key === 'Escape') { if (this.operatorPanel.isOpen()) this.operatorPanel.close(); }
+    else if ((e.key === 'f' || e.key === 'F') && !this.isTypingContext()) { this.toggleFullscreen(); }
+    else if ((e.key === 'm' || e.key === 'M') && !this.isTypingContext()) { this.operatorPanel.open(); }
+  }
+  toggleFullscreen() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+    else document.exitFullscreen().catch(() => {});
+  }
+  renderSoundIcon() {
+    const enabled = this.audioManager.isEnabled();
+    this.dom.soundToggleBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (enabled ? SPEAKER_ON : SPEAKER_OFF) + '</svg>';
+    this.dom.soundToggleBtn.setAttribute('aria-pressed', String(enabled));
+  }
+  setState(next) {
+    this.state = next;
+    const { dom } = this;
+    dom.ticketInput.disabled = next === STATES.SPINNING || next === STATES.RESULT;
+    dom.registerBtn.disabled = next === STATES.SPINNING || next === STATES.RESULT;
+    dom.spinBtn.disabled = next !== STATES.TICKET_REGISTERED;
+    dom.menuBtn.disabled = next === STATES.SPINNING;
+    dom.againBtn.disabled = next === STATES.SPINNING;
+    dom.spinBtn.textContent = next === STATES.SPINNING ? 'РОЗЫГРЫШ…' : 'Крутить';
+    if (next !== STATES.RESULT) dom.resultPanel.hidden = true;
+    dom.ticketPanel.classList.toggle('ticket-panel--locked', next === STATES.SPINNING || next === STATES.RESULT);
+    log('State:', next);
+  }
+  handleRegister() {
+    if (this.state === STATES.SPINNING || this.state === STATES.RESULT) return;
+    const raw = this.dom.ticketInput.value;
+    const result = this.ticketManager.register(raw);
+    if (!result.valid) {
+      const message = result.reason === 'empty' ? 'Введите номер билета' : 'Номер билета указан неверно';
+      showToast(message, 'error');
+      return;
+    }
+    this.dom.ticketStatus.textContent = 'Билет №' + result.value + ' зарегистрирован';
+    this.setState(STATES.TICKET_REGISTERED);
+    log('Ticket registered:', result.value);
+  }
+  async handleSpin() {
+    if (this.state !== STATES.TICKET_REGISTERED || this.reelEngine.isSpinning()) {
+      if (this.state === STATES.READY) showToast('Сначала зарегистрируйте билет гостя', 'error');
+      return;
+    }
+    const prize = this.prizeSelector.selectNext();
+    log('Selected prize:', prize.id);
+    this.setState(STATES.SPINNING);
+    this.dom.resultPanel.hidden = true;
+    this.dom.reelSection.classList.add('is-spinning');
+
+    try {
+      this.audioManager.unlock();
+      this.audioManager.playSpinStart();
+      const totalCards = Math.min(PRIZES.length * 26 + 1, 48);
+      this.audioManager.playTicks(totalCards, SPIN_DURATION_MS);
+    } catch (err) {
+      log('Audio error (ignored):', err);
+    }
+
+    log('Spin started, duration:', SPIN_DURATION_MS + 'ms');
+
+    let cardEl;
+    try {
+      cardEl = await this.reelEngine.spinTo(prize, SPIN_DURATION_MS);
+    } catch (err) {
+      log('Spin error:', err);
+      this.dom.reelSection.classList.remove('is-spinning');
+      showToast('Не получилось запустить розыгрыш, попробуйте ещё раз', 'error');
+      this.setState(STATES.TICKET_REGISTERED);
+      return;
+    }
+
+    log('Spin complete. Final card:', prize.id);
+    this.dom.reelSection.classList.remove('is-spinning');
+
+    try {
+      this.showResult(prize, cardEl);
+    } catch (err) {
+      log('Result/celebration error (ignored):', err);
+    }
+    this.operatorPanel.refreshAfterSpin();
+  }
+  showResult(prize, cardEl) {
+    const { dom } = this;
+    const ticket = this.ticketManager.get();
+    this.setState(STATES.RESULT);
+    dom.resultTicket.textContent = 'Билет №' + ticket;
+    dom.resultEyebrow.textContent = prize.grandPrize ? 'Главный приз!' : 'Поздравляем!';
+    dom.resultPrize.textContent = prize.title;
+    dom.resultGrandSub.hidden = !prize.grandPrize;
+    dom.resultPanel.classList.toggle('result-panel--grand', prize.grandPrize);
+    dom.resultPanel.hidden = false;
+    if (prize.grandPrize) {
+      try { this.audioManager.playJackpot(); } catch (err) { log('Jackpot audio error (ignored):', err); }
+      try { this.celebrationManager.celebrateGrandPrize(cardEl); } catch (err) { log('Grand celebration error (ignored):', err); }
+    } else {
+      try { this.audioManager.playWin(); } catch (err) { log('Win audio error (ignored):', err); }
+      try { this.celebrationManager.celebrateNormalPrize(cardEl); } catch (err) { log('Celebration error (ignored):', err); }
+    }
+  }
+  handleReset() {
+    this.ticketManager.clear();
+    this.dom.ticketInput.value = '';
+    this.dom.ticketStatus.textContent = '';
+    this.dom.resultPanel.hidden = true;
+    this.celebrationManager.stopCelebration();
+    this.reelEngine.buildIdleTrack();
+    this.reelEngine.startIdle();
+    this.setState(STATES.READY);
+    this.dom.ticketInput.focus();
+  }
+}
+
+function byId(id) { return document.getElementById(id); }
+
+function primeAudioOnFirstInteraction(audioManager) {
+  const unlockOnce = () => {
+    audioManager.unlock();
+    document.removeEventListener('touchend', unlockOnce);
+    document.removeEventListener('mousedown', unlockOnce);
+    document.removeEventListener('keydown', unlockOnce);
+  };
+  document.addEventListener('touchend', unlockOnce, { passive: true });
+  document.addEventListener('mousedown', unlockOnce);
+  document.addEventListener('keydown', unlockOnce);
+}
+
+let wakeLockSentinel = null;
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator) {
+      wakeLockSentinel = await navigator.wakeLock.request('screen');
+      wakeLockSentinel.addEventListener('release', () => { wakeLockSentinel = null; });
+    }
+  } catch (err) {
+    /* не критично — на части устройств экран всё же может гаснуть */
+  }
+}
+function setupWakeLock() {
+  requestWakeLock();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && wakeLockSentinel === null) requestWakeLock();
+  });
+  document.addEventListener('click', () => {
+    if (wakeLockSentinel === null) requestWakeLock();
+  });
+}
+
+function init() {
+  initToasts(byId('toast-root'));
+  resolveBackground(byId('bg-layer'), BACKGROUND_IMAGE, 'bg-layer--placeholder');
+  resolveLogo(byId('logo-img'), byId('logo-wordmark'), LOGO_IMAGE);
+  setupWakeLock();
+
+  const ticketManager = new TicketManager();
+  const prizeSelector = new PrizeSelector(PRIZES);
+  const reelEngine = new ReelEngine(byId('reel-track'), byId('reel-frame'));
+  const audioManager = new AudioManager();
+  primeAudioOnFirstInteraction(audioManager);
+  const celebrationManager = new CelebrationManager(byId('celebration-canvas'), byId('dim-overlay'), byId('reel-frame'));
+
+  const operatorPanel = new OperatorPanel({
+    overlayEl: byId('operator-overlay'),
+    modalEl: byId('operator-modal'),
+    openBtn: byId('menu-btn'),
+    closeBtn: byId('operator-close-btn'),
+    pickGridEl: byId('operator-test-grid')
+  }, prizeSelector, () => reelEngine.isSpinning());
+
+  const dom = {
+    ticketInput: byId('ticket-input'), registerBtn: byId('register-btn'), ticketStatus: byId('ticket-status'),
+    ticketPanel: byId('ticket-panel'), spinBtn: byId('spin-btn'), againBtn: byId('again-btn'),
+    resultPanel: byId('result-panel'), resultEyebrow: byId('result-eyebrow'), resultTicket: byId('result-ticket'),
+    resultPrize: byId('result-prize'), resultGrandSub: byId('result-grand-sub'), soundToggleBtn: byId('sound-toggle-btn'),
+    fullscreenBtn: byId('fullscreen-btn'), reelSection: byId('reel-section'), menuBtn: byId('menu-btn')
+  };
+
+  new UIController(dom, { ticketManager, prizeSelector, reelEngine, audioManager, celebrationManager, operatorPanel });
+
+  if (DEBUG) console.log('[HolidayAsiaDraw] App initialized. Prizes:', PRIZES.map((p) => p.id));
+}
+
+document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+</body>
+</html>
