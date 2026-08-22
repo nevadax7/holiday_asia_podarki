@@ -675,14 +675,14 @@ const GRAND_CELEBRATION_MS = 8500;
 const IDLE_SPEED_PX_PER_SEC = 16;
 
 const PRIZES = [
-  { id: 'spa', title: 'SPA ДЛЯ ДВОИХ', shortTitle: 'SPA', image: 'images/prize-spa.png', icon: 'spa', weight: 35, grandPrize: false },
-  { id: 'dinner', title: 'РОМАНТИЧЕСКИЙ УЖИН', shortTitle: 'УЖИН', image: 'images/prize-dinner.png', icon: 'dinner', weight: 30, grandPrize: false },
-  { id: 'cruise', title: 'ВЕЧЕРНИЙ КРУИЗ', shortTitle: 'КРУИЗ', image: 'images/prize-cruise.png', icon: 'cruise', weight: 25, grandPrize: false },
-  { id: 'week', title: 'НЕДЕЛЯ ОТДЫХА', shortTitle: 'НЕДЕЛЯ', image: 'images/prize-week.png', icon: 'week', weight: 10, grandPrize: true }
+  { id: 'spa', title: 'SPA ДЛЯ ДВОИХ', shortTitle: 'SPA', image: 'prize-spa.png', icon: 'spa', weight: 35, grandPrize: false },
+  { id: 'dinner', title: 'РОМАНТИЧЕСКИЙ УЖИН', shortTitle: 'УЖИН', image: 'prize-dinner.png', icon: 'dinner', weight: 30, grandPrize: false },
+  { id: 'cruise', title: 'ВЕЧЕРНИЙ КРУИЗ', shortTitle: 'КРУИЗ', image: 'prize-cruise.png', icon: 'cruise', weight: 25, grandPrize: false },
+  { id: 'week', title: 'НЕДЕЛЯ ОТДЫХА', shortTitle: 'НЕДЕЛЯ', image: 'prize-week.png', icon: 'week', weight: 10, grandPrize: true }
 ];
 
-const LOGO_IMAGE = 'images/logo.png';
-const BACKGROUND_IMAGE = 'images/background.png';
+const LOGO_IMAGE = 'logo.png';
+const BACKGROUND_IMAGE = 'background.png';
 
 function selectWeighted(items) {
   const totalWeight = items.reduce((sum, item) => sum + item.weight, 0);
