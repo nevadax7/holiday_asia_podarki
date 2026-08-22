@@ -1174,9 +1174,8 @@ class ReelEngine {
   isSpinning() { return this.spinning; }
 }
 
-const SPIN_AUDIO_URL = './spin.wav';
-const WIN_AUDIO_URL = './win.wav';
-const GRAND_AUDIO_URL = './grand-win.wav';
+const NORMAL_DRAW_AUDIO_URL = './spin-normal.mp3';
+const GRAND_DRAW_AUDIO_URL = './spin-grand.mp3';
 const AUDIO_STORAGE_KEY = 'holidayAsiaDraw.soundEnabled';
 
 class AudioManager {
@@ -1184,17 +1183,14 @@ class AudioManager {
     const stored = localStorage.getItem(AUDIO_STORAGE_KEY);
     this.enabled = stored === null ? SOUND_ENABLED_DEFAULT : stored === '1';
 
-    this.spinPlayer = this.createPlayer(SPIN_AUDIO_URL, 0.95);
-    this.winPlayer = this.createPlayer(WIN_AUDIO_URL, 0.95);
-    this.grandPlayer = this.createPlayer(GRAND_AUDIO_URL, 1.0);
-
-    this.players = [this.spinPlayer, this.winPlayer, this.grandPlayer];
-    this.primed = false;
-    this.primeInProgress = false;
+    this.normalPlayer = this.createPlayer(NORMAL_DRAW_AUDIO_URL, 1.0);
+    this.grandPlayer = this.createPlayer(GRAND_DRAW_AUDIO_URL, 1.0);
+    this.players = [this.normalPlayer, this.grandPlayer];
   }
 
   createPlayer(src, volume) {
-    const audio = new Audio(src);
+    const audio = new Audio();
+    audio.src = src;
     audio.preload = 'auto';
     audio.playsInline = true;
     audio.setAttribute('playsinline', '');
@@ -1214,7 +1210,6 @@ class AudioManager {
 
   toggle() {
     this.setEnabled(!this.enabled);
-    if (this.enabled) this.primeMobileAudio();
     return this.enabled;
   }
 
@@ -1229,96 +1224,44 @@ class AudioManager {
     this.players.forEach((player) => this.stopPlayer(player));
   }
 
-  primeMobileAudio() {
-    if (!this.enabled || this.primed || this.primeInProgress) return;
-    this.primeInProgress = true;
+  playDraw(isGrandPrize) {
+    if (!this.enabled) return true;
 
-    const volumes = [0.95, 0.95, 1.0];
-    const promises = this.players.map((player, i) => {
-      try {
-        player.pause();
-        player.currentTime = 0;
-        player.volume = 0.001;
-        const p = player.play();
-        return Promise.resolve(p)
-          .then(() => true)
-          .catch((err) => {
-            log('Audio prime blocked for player ' + i + ':', err);
-            return false;
-          });
-      } catch (err) {
-        log('Audio prime error for player ' + i + ':', err);
-        return Promise.resolve(false);
-      }
-    });
+    const player = isGrandPrize ? this.grandPlayer : this.normalPlayer;
+    const other = isGrandPrize ? this.normalPlayer : this.grandPlayer;
 
-    Promise.all(promises).then((results) => {
-      setTimeout(() => {
-        this.players.forEach((player, i) => {
-          try {
-            player.pause();
-            player.currentTime = 0;
-            player.volume = volumes[i];
-          } catch (err) {}
-        });
-        this.primed = results.some(Boolean);
-        this.primeInProgress = false;
-        log('Mobile audio primed:', this.primed, results);
-      }, 90);
-    });
-  }
-
-  playPlayer(player, volume) {
-    if (!this.enabled) return;
     try {
-      this.players.forEach((p) => {
-        if (p !== player) this.stopPlayer(p);
-      });
-
+      this.stopPlayer(other);
       player.pause();
       player.currentTime = 0;
-      player.volume = volume;
+      player.volume = 1.0;
+
+      // One play() call, directly from the user's tap on КРУТИТЬ.
+      // This avoids the delayed second play() that mobile browsers block.
       const promise = player.play();
 
       if (promise && promise.catch) {
         promise.catch((err) => {
-          log('HTMLAudio playback blocked:', err);
-          showToast('Браузер заблокировал звук. Нажмите значок звука и попробуйте снова.', 'error');
+          log('Audio playback blocked:', err);
+          showToast('Не удалось запустить звук. Проверьте громкость телефона и нажмите КРУТИТЬ ещё раз.', 'error');
         });
       }
+      return true;
     } catch (err) {
-      log('HTMLAudio playback error:', err);
+      log('Audio playback error:', err);
+      return false;
     }
   }
 
-  playSpinStart() {
-    // Start hit is already mixed into spin.wav.
-  }
-
-  playSpinSoundtrack(durationMs) {
-    this.playPlayer(this.spinPlayer, 0.95);
-  }
-
-  playTicks(totalCards, durationMs) {
-    // Ticks are already mixed into spin.wav.
-  }
-
-  playWin() {
-    this.playPlayer(this.winPlayer, 0.95);
-  }
-
-  playGrandWin() {
-    this.playPlayer(this.grandPlayer, 1.0);
-  }
-
-  playJackpot() {
-    this.playGrandWin();
-  }
-
-  unlock() {
-    this.primeMobileAudio();
-    return this.spinPlayer;
-  }
+  // Compatibility stubs.
+  primeMobileAudio() {}
+  unlock() { return true; }
+  playSpinStart() {}
+  playSpinSoundtrack() {}
+  playTicks() {}
+  playWin() {}
+  playGrandWin() {}
+  playJackpot() {}
 }
 
 const PALETTE_GRAND = ['#d7b56d', '#f1d99a', '#fff7df', '#ffffff', '#9ed6d3'];
@@ -1640,19 +1583,17 @@ class UIController {
       return;
     }
 
-    // Keep audio startup as close as possible to the user's click/tap.
+    const prize = this.prizeSelector.selectNext();
+    log('Selected prize:', prize.id);
+
+    // Start the entire audio sequence from the same user tap.
+    // Normal prize: spin sound + normal win.
+    // Grand prize: spin sound + grand-prize fanfare.
     try {
-      this.audioManager.unlock();
-      this.audioManager.playSpinStart();
-      this.audioManager.playSpinSoundtrack(SPIN_DURATION_MS);
-      const totalCards = 58;
-      this.audioManager.playTicks(totalCards, SPIN_DURATION_MS);
+      this.audioManager.playDraw(prize.grandPrize);
     } catch (err) {
       log('Audio error (ignored):', err);
     }
-
-    const prize = this.prizeSelector.selectNext();
-    log('Selected prize:', prize.id);
     this.setState(STATES.SPINNING);
     this.dom.resultPanel.hidden = true;
     this.dom.reelSection.classList.add('is-spinning');
@@ -1691,10 +1632,8 @@ class UIController {
     dom.resultPanel.classList.toggle('result-panel--grand', prize.grandPrize);
     dom.resultPanel.hidden = false;
     if (prize.grandPrize) {
-      try { this.audioManager.playGrandWin(); } catch (err) { log('Grand win audio error (ignored):', err); }
       try { this.celebrationManager.celebrateGrandPrize(cardEl); } catch (err) { log('Grand celebration error (ignored):', err); }
     } else {
-      try { this.audioManager.playWin(); } catch (err) { log('Win audio error (ignored):', err); }
       try { this.celebrationManager.celebrateNormalPrize(cardEl); } catch (err) { log('Celebration error (ignored):', err); }
     }
   }
@@ -1714,12 +1653,7 @@ class UIController {
 function byId(id) { return document.getElementById(id); }
 
 function primeAudioOnFirstInteraction(audioManager) {
-  const prime = () => {
-    try { audioManager.primeMobileAudio(); } catch (err) {}
-  };
-  document.addEventListener('pointerdown', prime, { capture: true, passive: true });
-  document.addEventListener('touchend', prime, { capture: true, passive: true });
-  document.addEventListener('click', prime, true);
+  // No priming needed: audio starts directly from the КРУТИТЬ tap.
 }
 
 let wakeLockSentinel = null;
