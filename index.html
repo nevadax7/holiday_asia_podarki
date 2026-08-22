@@ -567,6 +567,61 @@ button{ font-family: inherit; }
   text-align: center;
 }
 
+
+/* GRAND PRIZE LIGHT SHOW */
+body::before{
+  content:"";
+  position:fixed;
+  inset:-18vmax;
+  z-index:4;
+  pointer-events:none;
+  opacity:0;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.96) 0 2%, rgba(241,217,154,0.58) 9%, transparent 28%),
+    conic-gradient(from 0deg at 50% 50%, transparent 0deg, rgba(215,181,109,0.28) 14deg, transparent 30deg, transparent 58deg, rgba(80,183,184,0.23) 72deg, transparent 92deg);
+  transform:scale(.65) rotate(0deg);
+  mix-blend-mode:screen;
+}
+body.grand-celebration-active::before{
+  animation: grandLightBurst 8.5s cubic-bezier(.16,.8,.22,1) both;
+}
+body.grand-celebration-active .reel-wrap::before,
+body.grand-celebration-active .reel-wrap::after{
+  content:"";
+  position:absolute;
+  left:50%; top:50%;
+  width:18px;
+  height:145vh;
+  z-index:5;
+  pointer-events:none;
+  transform-origin:50% 50%;
+  background:linear-gradient(180deg, transparent, rgba(255,255,255,.15) 15%, rgba(241,217,154,.92) 48%, rgba(255,255,255,.2) 70%, transparent);
+  filter:blur(3px) drop-shadow(0 0 18px rgba(241,217,154,.9));
+  opacity:0;
+  animation: grandBeamSweep 2.1s ease-in-out infinite;
+}
+body.grand-celebration-active .reel-wrap::before{ transform:translate(-50%,-50%) rotate(28deg); }
+body.grand-celebration-active .reel-wrap::after{ transform:translate(-50%,-50%) rotate(-28deg); animation-delay:.35s; }
+.result-panel--grand{
+  animation: grandResultPulse 1.15s ease-in-out infinite alternate;
+}
+@keyframes grandLightBurst{
+  0%{opacity:0; transform:scale(.55) rotate(0deg);}
+  7%{opacity:1; transform:scale(.9) rotate(18deg);}
+  18%{opacity:.8; transform:scale(1.05) rotate(48deg);}
+  45%{opacity:.62; transform:scale(1.18) rotate(125deg);}
+  75%{opacity:.45; transform:scale(1.28) rotate(220deg);}
+  100%{opacity:0; transform:scale(1.38) rotate(320deg);}
+}
+@keyframes grandBeamSweep{
+  0%,100%{opacity:.08; filter:blur(5px) drop-shadow(0 0 10px rgba(241,217,154,.55));}
+  50%{opacity:.95; filter:blur(2px) drop-shadow(0 0 30px rgba(241,217,154,1));}
+}
+@keyframes grandResultPulse{
+  from{box-shadow:0 12px 30px rgba(21,56,61,.14),0 0 0 0 rgba(215,181,109,.22); transform:translateY(0) scale(1);}
+  to{box-shadow:0 18px 42px rgba(21,56,61,.22),0 0 0 10px rgba(215,181,109,.16),0 0 54px rgba(241,217,154,.72); transform:translateY(-2px) scale(1.015);}
+}
+
 @media (max-width: 640px){
   .top-bar__actions .icon-btn--label{ padding: 0 10px; font-size: 10px; }
   .ticket-row{ flex-direction: column; }
@@ -670,7 +725,7 @@ button{ font-family: inherit; }
 
 const DEBUG = false;
 const SOUND_ENABLED_DEFAULT = true;
-const SPIN_DURATION_MS = 12000;
+const SPIN_DURATION_MS = 11500;
 const GRAND_CELEBRATION_MS = 8500;
 const IDLE_SPEED_PX_PER_SEC = 16;
 
@@ -963,9 +1018,31 @@ class AudioManager {
     this.silentAudioEl = el;
   }
   unlock() {
-    if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-    this.primeSilentAudio();
-    if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextCtor) throw new Error('Web Audio API is not supported');
+    if (!this.ctx) {
+      this.ctx = new AudioContextCtor({ latencyHint: 'interactive' });
+    }
+
+    // iOS/Safari requires audio to be unlocked directly from a user gesture.
+    // Resume the context and immediately push a near-silent one-shot sound
+    // through the audio graph so later scheduled sounds start without delay.
+    if (this.ctx.state === 'suspended') {
+      const resumePromise = this.ctx.resume();
+      if (resumePromise && resumePromise.catch) resumePromise.catch(() => {});
+    }
+
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.00001, this.ctx.currentTime);
+      osc.connect(gain).connect(this.ctx.destination);
+      osc.start(this.ctx.currentTime);
+      osc.stop(this.ctx.currentTime + 0.015);
+    } catch (err) {
+      /* warm-up is best-effort */
+    }
+
     return this.ctx;
   }
   isEnabled() { return this.enabled; }
@@ -1010,14 +1087,107 @@ class AudioManager {
   playTicks(totalCards, durationMs) {
     if (!this.enabled) return;
     const ctx = this.unlock();
-    const start = ctx.currentTime + 0.02;
-    const durationSec = durationMs / 1000;
-    for (let i = 1; i <= totalCards; i++) {
-      const frac = 1 - Math.pow(1 - i / totalCards, 3);
-      const t = start + frac * durationSec;
-      const freq = 360 + 240 * (i / totalCards);
-      this.tone(t, freq, { duration: 0.05, type: 'square', volume: 0.14 });
+    const start = ctx.currentTime + 0.015;
+    const durationSec = Math.max(0.1, durationMs / 1000 - 0.06);
+
+    // Start almost immediately, then gradually increase spacing between ticks
+    // to match the reel's deceleration. The previous formula delayed the first
+    // audible tick by ~0.7 s on a 12 s spin.
+    for (let i = 0; i < totalCards; i++) {
+      const progress = totalCards <= 1 ? 1 : i / (totalCards - 1);
+      const timeProgress = Math.pow(progress, 1.35);
+      const t = start + timeProgress * durationSec;
+      const freq = 390 + 210 * progress;
+      this.tone(t, freq, { duration: 0.04, type: 'square', volume: 0.14 });
     }
+  }
+  playSpinSoundtrack(durationMs) {
+    if (!this.enabled) return;
+    const ctx = this.unlock();
+    const start = ctx.currentTime + 0.01;
+    const end = start + durationMs / 1000;
+
+    // Main cinematic bed: subtle motor/drone that rises with the reel.
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0.0001, start);
+    master.gain.linearRampToValueAtTime(0.085, start + 0.18);
+    master.gain.setValueAtTime(0.085, Math.max(start + 0.2, end - 1.2));
+    master.gain.exponentialRampToValueAtTime(0.0001, end);
+    master.connect(ctx.destination);
+
+    const drone = ctx.createOscillator();
+    const droneGain = ctx.createGain();
+    drone.type = 'sawtooth';
+    drone.frequency.setValueAtTime(72, start);
+    drone.frequency.exponentialRampToValueAtTime(118, end - 0.35);
+    droneGain.gain.setValueAtTime(0.035, start);
+    drone.connect(droneGain).connect(master);
+    drone.start(start);
+    drone.stop(end + 0.05);
+
+    // Arcade/casino arpeggio. Spacing becomes wider toward the end to match deceleration.
+    const scale = [261.63, 329.63, 392.00, 523.25, 659.25];
+    const noteCount = 34;
+    for (let i = 0; i < noteCount; i++) {
+      const p = i / (noteCount - 1);
+      const tp = Math.pow(p, 1.28);
+      const t = start + 0.08 + tp * Math.max(0.1, (end - start - 0.55));
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = i % 3 === 0 ? 'triangle' : 'sine';
+      osc.frequency.value = scale[i % scale.length] * (i > 24 ? 1.2 : 1);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.linearRampToValueAtTime(0.055 + p * 0.02, t + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.16 + p * 0.08);
+      osc.connect(gain).connect(master);
+      osc.start(t);
+      osc.stop(t + 0.28);
+    }
+
+    // Final riser before the winning card locks into the center.
+    const riser = ctx.createOscillator();
+    const riserGain = ctx.createGain();
+    riser.type = 'sine';
+    riser.frequency.setValueAtTime(220, end - 1.0);
+    riser.frequency.exponentialRampToValueAtTime(980, end - 0.05);
+    riserGain.gain.setValueAtTime(0.0001, end - 1.0);
+    riserGain.gain.linearRampToValueAtTime(0.11, end - 0.25);
+    riserGain.gain.exponentialRampToValueAtTime(0.0001, end);
+    riser.connect(riserGain).connect(ctx.destination);
+    riser.start(end - 1.0);
+    riser.stop(end + 0.02);
+  }
+  playGrandWin() {
+    if (!this.enabled) return;
+    const ctx = this.unlock();
+    const now = ctx.currentTime + 0.01;
+
+    // Strong opening hit.
+    const hit = ctx.createOscillator();
+    const hitGain = ctx.createGain();
+    hit.type = 'sine';
+    hit.frequency.setValueAtTime(95, now);
+    hit.frequency.exponentialRampToValueAtTime(48, now + 0.7);
+    hitGain.gain.setValueAtTime(0.42, now);
+    hitGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.75);
+    hit.connect(hitGain).connect(ctx.destination);
+    hit.start(now);
+    hit.stop(now + 0.8);
+
+    // Bright jackpot fanfare.
+    const melody = [523.25,659.25,783.99,1046.5,1318.5,1568.0,2093.0];
+    melody.forEach((f, i) => {
+      const t = now + 0.08 + i * 0.105;
+      this.tone(t, f, {duration: 0.75, type: i < 4 ? 'triangle' : 'sine', volume: 0.24});
+      if (i >= 3) this.tone(t + 0.018, f / 2, {duration: 0.9, type: 'sine', volume: 0.09});
+    });
+
+    // Two celebratory chord hits.
+    [[0.95,[523.25,659.25,783.99]],[1.55,[659.25,830.61,987.77]]].forEach(([offset, chord]) => {
+      chord.forEach((f, j) => this.tone(now + offset + j*0.012, f, {duration: 1.25, type:'triangle', volume:0.16}));
+    });
+
+    try { this.playApplause(now + 0.55, 7.4); } catch (err) { /* optional */ }
   }
   playWin() {
     if (!this.enabled) return;
@@ -1122,6 +1292,7 @@ class CelebrationManager {
     this.clear();
     this.dimEl.classList.remove('dim-overlay--active');
     this.reelFrame.classList.remove('reel-frame--grand-active');
+    document.body.classList.remove('grand-celebration-active');
   }
   spawnConfetti(count, colors, originX, originY, spread) {
     for (let i = 0; i < count; i++) {
@@ -1178,6 +1349,7 @@ class CelebrationManager {
     setTimeout(() => cardEl.classList.remove('reel-card--winning-glow', 'reel-card--settle'), 2600);
   }
   celebrateGrandPrize(cardEl) {
+    document.body.classList.add('grand-celebration-active');
     this.reelFrame.classList.add('reel-frame--grand-active');
     cardEl.classList.add('reel-card--grand-zoom');
     const rect = cardEl.getBoundingClientRect();
@@ -1204,6 +1376,9 @@ class CelebrationManager {
         this.runLoop();
       }, delay);
     });
+    this.grandTimer = setTimeout(() => {
+      document.body.classList.remove('grand-celebration-active');
+    }, total);
   }
 }
 
@@ -1339,20 +1514,23 @@ class UIController {
       if (this.state === STATES.READY) showToast('Сначала зарегистрируйте билет гостя', 'error');
       return;
     }
+
+    // Keep audio startup as close as possible to the user's click/tap.
+    try {
+      this.audioManager.unlock();
+      this.audioManager.playSpinStart();
+      this.audioManager.playSpinSoundtrack(SPIN_DURATION_MS);
+      const totalCards = 58;
+      this.audioManager.playTicks(totalCards, SPIN_DURATION_MS);
+    } catch (err) {
+      log('Audio error (ignored):', err);
+    }
+
     const prize = this.prizeSelector.selectNext();
     log('Selected prize:', prize.id);
     this.setState(STATES.SPINNING);
     this.dom.resultPanel.hidden = true;
     this.dom.reelSection.classList.add('is-spinning');
-
-    try {
-      this.audioManager.unlock();
-      this.audioManager.playSpinStart();
-      const totalCards = Math.min(PRIZES.length * 26 + 1, 48);
-      this.audioManager.playTicks(totalCards, SPIN_DURATION_MS);
-    } catch (err) {
-      log('Audio error (ignored):', err);
-    }
 
     log('Spin started, duration:', SPIN_DURATION_MS + 'ms');
 
@@ -1388,7 +1566,7 @@ class UIController {
     dom.resultPanel.classList.toggle('result-panel--grand', prize.grandPrize);
     dom.resultPanel.hidden = false;
     if (prize.grandPrize) {
-      try { this.audioManager.playJackpot(); } catch (err) { log('Jackpot audio error (ignored):', err); }
+      try { this.audioManager.playGrandWin(); } catch (err) { log('Grand win audio error (ignored):', err); }
       try { this.celebrationManager.celebrateGrandPrize(cardEl); } catch (err) { log('Grand celebration error (ignored):', err); }
     } else {
       try { this.audioManager.playWin(); } catch (err) { log('Win audio error (ignored):', err); }
@@ -1411,15 +1589,29 @@ class UIController {
 function byId(id) { return document.getElementById(id); }
 
 function primeAudioOnFirstInteraction(audioManager) {
+  let unlocked = false;
   const unlockOnce = () => {
-    audioManager.unlock();
-    document.removeEventListener('touchend', unlockOnce);
-    document.removeEventListener('mousedown', unlockOnce);
-    document.removeEventListener('keydown', unlockOnce);
+    if (unlocked) return;
+    try {
+      audioManager.unlock();
+      unlocked = true;
+    } catch (err) {
+      return;
+    }
+    document.removeEventListener('pointerdown', unlockOnce, true);
+    document.removeEventListener('touchstart', unlockOnce, true);
+    document.removeEventListener('mousedown', unlockOnce, true);
+    document.removeEventListener('click', unlockOnce, true);
+    document.removeEventListener('keydown', unlockOnce, true);
   };
-  document.addEventListener('touchend', unlockOnce, { passive: true });
-  document.addEventListener('mousedown', unlockOnce);
-  document.addEventListener('keydown', unlockOnce);
+
+  // Capture phase + touchstart/pointerdown keeps the call inside the original
+  // user gesture, which is important for Safari/iOS audio policies.
+  document.addEventListener('pointerdown', unlockOnce, { capture: true, passive: true });
+  document.addEventListener('touchstart', unlockOnce, { capture: true, passive: true });
+  document.addEventListener('mousedown', unlockOnce, true);
+  document.addEventListener('click', unlockOnce, true);
+  document.addEventListener('keydown', unlockOnce, true);
 }
 
 let wakeLockSentinel = null;
