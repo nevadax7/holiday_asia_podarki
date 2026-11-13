@@ -1133,9 +1133,19 @@ class ReelEngine {
       const loops = 26;
       const sequence = [];
       for (let i = 0; i < loops; i++) sequence.push(...PRIZES);
+
+      // Keep the winning card visually unique: the card immediately before
+      // and after it must always be a different prize.  Without this guard,
+      // selecting the last card in PRIZES (the grand prize) placed two
+      // identical cards next to each other at the loop boundary.
+      if (sequence[sequence.length - 1].id === prize.id) {
+        sequence.push(PRIZES.find((item) => item.id !== prize.id));
+      }
       const targetIndex = sequence.length;
       sequence.push(prize);
-      sequence.push(...PRIZES);
+      const afterWinner = [...PRIZES];
+      while (afterWinner[0].id === prize.id) afterWinner.push(afterWinner.shift());
+      sequence.push(...afterWinner);
       sequence.forEach((p) => this.track.appendChild(this.createCard(p)));
       const winningCardEl = this.track.children[targetIndex];
       this.activeTargetIndex = targetIndex;
